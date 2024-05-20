@@ -1,0 +1,26 @@
+[tool.poetry]
+name = "hue-control"
+version = "0.1.0"
+description = ""
+authors = ["PonyM <dev@lksch.ch>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.10"
+textual = "^0.61.1"
+uvloop = "^0.19.0"
+gmqtt = "^0.6.16"
+click = "^8.1.7"
+aiohttp = "^3.9.5"
+black = "^24.4.2"
+
+[tool.poetry.scripts]
+bt-mqtt = "bt_mqtt_ui.main:cli"
+
+[tool.poetry.group.dev.dependencies]
+datamodel-code-generator = "^0.25.6"
+textual-dev = "^1.5.1"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
