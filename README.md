@@ -14,3 +14,7 @@
     datamodel-codegen --output bt_mqtt_ui/models/device_state.py --input tele_tasmota_CE1412_STATE.txt  --input-file-type json --class-name DeviceState --target-python-version 3.10
 
     datamodel-codegen --output bt_mqtt_ui/models/device_telemetry.py --input tele_tasmota_CEE97F_SENSOR.txt --input-file-type json --class-name DeviceTelemetry --target-python-version 3.10
+
+### Create `requirements.txt`
+
+    poetry export -o requirements.txt --without-hashes
