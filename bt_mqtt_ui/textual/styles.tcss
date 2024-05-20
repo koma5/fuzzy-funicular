@@ -1,0 +1,17 @@
+DeviceContainer {
+  grid-size: 4;
+}
+
+DevicePanel {
+  max-width: 50;
+  border: heavy yellow;
+  height: auto;
+}
+
+Terminal {
+  dock: bottom;
+  height: 17;
+  background: black;
+  color: white;
+  padding: 1;
+}

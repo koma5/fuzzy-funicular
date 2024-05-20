@@ -14,7 +14,7 @@ def cli():
 @cli.command()
 @click.option("-h", "--host", default="127.0.0.1")
 @click.option('--port', default=1883, help='MQTT broker port')
-@click.option("-t", "--topic", multiple=True, default=("tele/+/+",))
+@click.option("-t", "--topic", multiple=True, default=("tasmota/discovery/+/+", "tele/+/+"))
 def listen(host, port, topic):
     """Listen to mqtt messages"""
     import asyncio

@@ -1,9 +1,12 @@
 [tool.poetry]
-name = "hue-control"
+name = "bt_mqtt_ui"
 version = "0.1.0"
 description = ""
 authors = ["PonyM <dev@lksch.ch>"]
 readme = "README.md"
+
+[[tool.poetry.packages]]
+include = "bt_mqtt_ui"
 
 [tool.poetry.dependencies]
 python = "^3.10"
@@ -14,6 +17,7 @@ click = "^8.1.7"
 aiohttp = "^3.9.5"
 black = "^24.4.2"
 pydantic = "^2.7.1"
+pydantic-settings = "^2.2.1"
 
 [tool.poetry.scripts]
 bt-mqtt = "bt_mqtt_ui.main:cli"
