@@ -1,5 +1,15 @@
 from textual.app import App, ComposeResult
-from textual.widgets import Footer, Header, RichLog, Placeholder, Static, Label
+from textual.widgets import (
+    Footer,
+    Header,
+    RichLog,
+    Placeholder,
+    Static,
+    Label,
+    TabbedContent,
+    TabPane,
+    TextArea
+)
 from textual.containers import Grid, Vertical
 from textual.reactive import var
 
@@ -15,6 +25,7 @@ class DeviceContainer(Grid):
 
 class Terminal(RichLog):
     """Terminal Widget"""
+
     hidden: var[bool] = var(False)
 
     def watch_hidden(self):
@@ -24,6 +35,7 @@ class Terminal(RichLog):
 
 class DevicePanel(Vertical):
     """Panel container for every device"""
+
     device_id: var[str] = var("Unknown Device ID")
 
     def watch_device_id(self, old, new_device_id: str):
@@ -43,7 +55,7 @@ class DevicePanel(Vertical):
 topic_rgx_to_models = {
     r"tele/\w+/STATE": DeviceState,
     r"tele/\w+/SENSOR": DeviceTelemetry,
-    r"tasmota/discovery/\w+/config": MQTTDiscovery
+    r"tasmota/discovery/\w+/config": MQTTDiscovery,
 }
 
 
@@ -70,20 +82,21 @@ class MQTTApp(App):
     def create_terminal(self):
         """Create the terminal widget using the config"""
         t = Terminal(name="Terminal")
-        if self.config.terminal.dump_config:
-            t.write("Current configuration")
-            t.write("---------------------")
-            t.write(self.config.to_yaml())
         t.styles.bg_color = self.config.terminal.style.bg_color
         return t
 
     def compose(self) -> ComposeResult:
         """A minimal screen of all other screen have been closed"""
         yield Header()
-        with Vertical():
-            with DeviceContainer():
-                yield DevicePanel()
-                yield DevicePanel()
+        with TabbedContent(initial="status"):
+            with TabPane("Status", id="status"):
+                with DeviceContainer():
+                    yield DevicePanel()
+                    yield DevicePanel()
+            with TabPane("Graphs", id="graphs"):
+                yield Placeholder("Here you be one graph")
+            with TabPane("Config"):
+                yield TextArea(self.config.to_yaml(), language="yaml")
         yield self.create_terminal()
         yield Footer()
 

@@ -13,8 +13,10 @@ def cli():
 
 @cli.command()
 @click.option("-h", "--host", default="127.0.0.1")
-@click.option('--port', default=1883, help='MQTT broker port')
-@click.option("-t", "--topic", multiple=True, default=("tasmota/discovery/+/+", "tele/+/+"))
+@click.option("--port", default=1883, help="MQTT broker port")
+@click.option(
+    "-t", "--topic", multiple=True, default=("tasmota/discovery/+/+", "tele/+/+")
+)
 def listen(host, port, topic):
     """Listen to mqtt messages"""
     import asyncio
@@ -24,23 +26,24 @@ def listen(host, port, topic):
 
     # gmqtt also compatibility with uvloop
     import uvloop
+
     asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
 
     STOP = asyncio.Event()
 
     def on_connect(client, flags, rc, properties):
-        print('Connected')
+        print("Connected")
         for to in topic:
             client.subscribe(to)
 
     def on_message(client, topic, payload, qos, properties):
-        print(f'RECV MSG topic {topic}:', payload)
+        print(f"RECV MSG topic {topic}:", payload)
 
     def on_disconnect(client, packet, exc=None):
-        print('Disconnected')
+        print("Disconnected")
 
     def on_subscribe(client, mid, qos, properties):
-        print('SUBSCRIBED')
+        print("SUBSCRIBED")
 
     def ask_exit(*args):
         STOP.set()

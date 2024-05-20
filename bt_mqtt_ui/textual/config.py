@@ -18,7 +18,9 @@ def load_config():
     if cfg_path.is_file():
         return AppConfig(**yaml.safe_load(cfg_path.read_text(encoding="utf-8")))
     else:
-        print(f"Config file {cfg_path} not found. You can set the config with env '{CONFIG_ENV_VAR}'")
+        print(
+            f"Config file {cfg_path} not found. You can set the config with env '{CONFIG_ENV_VAR}'"
+        )
         return AppConfig()
 
 
@@ -38,11 +40,11 @@ class TerminalStyle(BaseModel):
 
 class TerminalConfig(BaseModel):
     style: TerminalStyle = Field(default_factory=TerminalStyle)
-    dump_config: bool = True
 
 
 class AppConfig(BaseSettings):
     """Config for textual interface"""
+
     mqtt: MQTTConfig = Field(default_factory=MQTTConfig)
     terminal: TerminalConfig = Field(default_factory=TerminalConfig)
 
