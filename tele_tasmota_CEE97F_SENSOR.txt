@@ -1,1 +1,16 @@
-{"Time":"2024-05-20T13:36:54","ENERGY":{"TotalStartTime":"2023-12-05T11:03:34","Total":21.536,"Yesterday":0.000,"Today":0.000,"Period":0,"Power":0,"ApparentPower":0,"ReactivePower":0,"Factor":0.00,"Voltage":0,"Current":0.000}}
+{
+  "Time": "2024-05-20T13:36:54",
+  "ENERGY": {
+    "TotalStartTime": "2023-12-05T11:03:34",
+    "Total": 21.536,
+    "Yesterday": 0,
+    "Today": 0,
+    "Period": 0,
+    "Power": 0,
+    "ApparentPower": 0,
+    "ReactivePower": 0,
+    "Factor": 0,
+    "Voltage": 0,
+    "Current": 0
+  }
+}

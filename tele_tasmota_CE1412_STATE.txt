@@ -1,1 +1,22 @@
-{"Time":"2024-05-20T14:31:49","Uptime":"21T02:01:10","UptimeSec":1821670,"Heap":25,"SleepMode":"Dynamic","Sleep":50,"LoadAvg":19,"MqttCount":21,"POWER":"OFF","Wifi":{"AP":1,"SSId":"Bitwäscherei-Bau","BSSId":"80:2A:A8:2D:D3:B2","Channel":6,"Mode":"11n","RSSI":74,"Signal":-63,"LinkCount":4,"Downtime":"0T00:17:11"}}
+{
+  "Time": "2024-05-20T14:31:49",
+  "Uptime": "21T02:01:10",
+  "UptimeSec": 1821670,
+  "Heap": 25,
+  "SleepMode": "Dynamic",
+  "Sleep": 50,
+  "LoadAvg": 19,
+  "MqttCount": 21,
+  "POWER": "OFF",
+  "Wifi": {
+    "AP": 1,
+    "SSId": "Bitwäscherei-Bau",
+    "BSSId": "80:2A:A8:2D:D3:B2",
+    "Channel": 6,
+    "Mode": "11n",
+    "RSSI": 74,
+    "Signal": -63,
+    "LinkCount": 4,
+    "Downtime": "0T00:17:11"
+  }
+}
