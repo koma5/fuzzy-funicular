@@ -14,7 +14,7 @@ def cli():
 @cli.command()
 @click.option("-h", "--host", default="127.0.0.1")
 @click.option('--port', default=1883, help='MQTT broker port')
-@click.option("-t", "--topic", multiple=True, default=("hue2mqtt/#",))
+@click.option("-t", "--topic", multiple=True, default=("tele/+/+",))
 def listen(host, port, topic):
     """Listen to mqtt messages"""
     import asyncio
@@ -30,13 +30,11 @@ def listen(host, port, topic):
 
     def on_connect(client, flags, rc, properties):
         print('Connected')
-        # client.subscribe(lights_topic, qos=0)
-        # client.subscribe(groups_topic, qos=0)
         for to in topic:
             client.subscribe(to)
 
     def on_message(client, topic, payload, qos, properties):
-        print('RECV MSG:', payload)
+        print(f'RECV MSG topic {topic}:', payload)
 
     def on_disconnect(client, packet, exc=None):
         print('Disconnected')
@@ -68,3 +66,7 @@ def listen(host, port, topic):
     loop.add_signal_handler(signal.SIGTERM, ask_exit)
 
     loop.run_until_complete(main(host, None))
+
+
+if __name__ == "__main__":
+    cli()
