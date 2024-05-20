@@ -5,13 +5,13 @@ from textual.widgets import (
     RichLog,
     Placeholder,
     Static,
-    Label,
     TabbedContent,
     TabPane,
-    TextArea
+    TextArea,
 )
 from textual.containers import Grid, Vertical
-from textual.reactive import var
+from textual.widget import Widget
+from textual.reactive import var, reactive
 
 from bt_mqtt_ui.models.device_state import DeviceState
 from bt_mqtt_ui.models.device_telemetry import DeviceTelemetry
@@ -33,23 +33,30 @@ class Terminal(RichLog):
         pass
 
 
+class DeviceTitle(Widget):
+    """A widget to render a title together with online status"""
+
+    OFFLINE_EMOJI = ":red_circle:"
+    ONLINE_EMOJI = ":green_circle:"
+
+    is_online: reactive[bool] = True
+    device_id: reactive[str] = reactive("")
+
+    def render(self):
+        mapping = {True: self.ONLINE_EMOJI, False: self.OFFLINE_EMOJI}
+        return f"{mapping[self.is_online]} {self.device_id}"
+
+
 class DevicePanel(Vertical):
     """Panel container for every device"""
 
-    device_id: var[str] = var("Unknown Device ID")
-
-    def watch_device_id(self, old, new_device_id: str):
-        if new_device_id:
-            self.styles.border_title = new_device_id
+    device_id: reactive[str] = reactive("Unknown Device ID")
 
     def compose(self):
-        # TODO: bind values to sub widget: yield Widget().data_bind(time=Panel.cfg.widget_cfg)
-        yield Label(self.device_id)
-        yield Static("Online Status")
-        yield Static("Turn on/off")
+        yield DeviceTitle().data_bind(device_id=self.device_id)
 
-    def update(self, mqtt_data: DeviceState):
-        pass
+    def update(self, data):
+        raise NotImplementedError()
 
 
 topic_rgx_to_models = {
@@ -93,8 +100,8 @@ class MQTTApp(App):
                 with DeviceContainer():
                     yield DevicePanel()
                     yield DevicePanel()
-            with TabPane("Graphs", id="graphs"):
-                yield Placeholder("Here you be one graph")
+            with TabPane("Plots", id="plots"):
+                yield Placeholder("Here be one plot")
             with TabPane("Config"):
                 yield TextArea(self.config.to_yaml(), language="yaml")
         yield self.create_terminal()
@@ -114,6 +121,35 @@ class MQTTApp(App):
     def write_to_terminal(self, renderable):
         self.terminal.write(content=renderable)
 
+    @staticmethod
+    def device_id_from_topic(topic) -> str:
+        """Extracts device id from topic"""
+        return topic.split("/")[-2]
+
+    def _on_mqtt_message(self, topic: str, message: dict):
+        if topic.startswith("tasmota"):
+            # TODO What is really returned here?
+            # resp = MQTTDiscovery()
+            return
+        try:
+            device_id = self.device_id_from_topic(topic)
+            if topic.endswith("STATE"):
+                self._on_update_state(device_id, DeviceState.model_validate(message))
+            elif topic.endswith("SENSOR"):
+                self._on_update_telemetry(
+                    device_id, DeviceTelemetry.model_validate(message)
+                )
+        except Exception as e:
+            self.write_to_terminal(str(e))
+
+    def _on_update_state(self, device_id, mqtt_data: DeviceState):
+        """State message handling for topic STATE"""
+        pass
+
+    def _on_update_telemetry(self, device_id, mqtt_data: DeviceTelemetry):
+        """Handle device data and update plots"""
+        pass
+
     def update_device(self, device_id, data: DeviceState):
         panel = self.device_container.query_one(device_id, expect_type=DevicePanel)
         if not panel:
@@ -127,9 +163,6 @@ class MQTTApp(App):
             return
         panel = DevicePanel(id=device_id)
         parent.mount(panel)
-
-    def add_config(self, config: AppConfig):
-        self.config = config
 
 
 def run():
