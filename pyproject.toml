@@ -13,6 +13,7 @@ gmqtt = "^0.6.16"
 click = "^8.1.7"
 aiohttp = "^3.9.5"
 black = "^24.4.2"
+pydantic = "^2.7.1"
 
 [tool.poetry.scripts]
 bt-mqtt = "bt_mqtt_ui.main:cli"

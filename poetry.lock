@@ -116,7 +116,7 @@ frozenlist = ">=1.1.0"
 name = "annotated-types"
 version = "0.6.0"
 description = "Reusable constraint types to use with typing.Annotated"
-category = "dev"
+category = "main"
 optional = false
 python-versions = ">=3.8"
 files = [
@@ -864,7 +864,7 @@ type = ["mypy (>=1.8)"]
 name = "pydantic"
 version = "2.7.1"
 description = "Data validation using Python type hints"
-category = "dev"
+category = "main"
 optional = false
 python-versions = ">=3.8"
 files = [
@@ -885,7 +885,7 @@ email = ["email-validator (>=2.0.0)"]
 name = "pydantic-core"
 version = "2.18.2"
 description = "Core functionality for Pydantic validation and serialization"
-category = "dev"
+category = "main"
 optional = false
 python-versions = ">=3.8"
 files = [
@@ -1309,4 +1309,4 @@ multidict = ">=4.0"
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "dd2ea5f22bac65a49613eabea65cfa1d2a1328966e00656135d4b3fdeede52c5"
+content-hash = "5347bb8fe43f70c0b795791ced7bb06bc229b6716baecd22ee8995bb7f7a160c"
