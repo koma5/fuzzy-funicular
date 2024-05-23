@@ -1,22 +1,26 @@
-from textual.app import App, ComposeResult
+from textual.app import App, ComposeResult, RenderResult
 from textual.widgets import (
     Footer,
     Header,
     RichLog,
-    Placeholder,
-    Static,
+    Label,
     TabbedContent,
     TabPane,
+    Placeholder,
     TextArea,
 )
-from textual.containers import Grid, Vertical
-from textual.widget import Widget
+from textual.containers import Grid, Vertical, Container
 from textual.reactive import var, reactive
 
 from bt_mqtt_ui.models.device_state import DeviceState
 from bt_mqtt_ui.models.device_telemetry import DeviceTelemetry
 from bt_mqtt_ui.models.tasmota_discovery import MQTTDiscovery
 from bt_mqtt_ui.textual.config import AppConfig, load_config
+
+
+def device_id_from_topic(topic) -> str:
+    """Extracts device id from topic"""
+    return topic.split("/")[-2]
 
 
 class DeviceContainer(Grid):
@@ -33,29 +37,43 @@ class Terminal(RichLog):
         pass
 
 
-class DeviceTitle(Widget):
+class DeviceTitle(Label):
     """A widget to render a title together with online status"""
 
     OFFLINE_EMOJI = ":red_circle:"
     ONLINE_EMOJI = ":green_circle:"
 
-    is_online: reactive[bool] = True
-    device_id: reactive[str] = reactive("")
+    is_online: reactive[bool] = reactive(True)
+    device_id: reactive[str] = reactive("Unknown Device ID")
 
-    def render(self):
+    def render(self) -> RenderResult:
         mapping = {True: self.ONLINE_EMOJI, False: self.OFFLINE_EMOJI}
         return f"{mapping[self.is_online]} {self.device_id}"
 
 
-class DevicePanel(Vertical):
+class DeviceIP(Label):
+    ip: reactive[str] = reactive("")
+
+    def render(self) -> RenderResult:
+        return f"IP: {self.ip}"
+
+
+class DevicePanel(Container):
     """Panel container for every device"""
 
     device_id: reactive[str] = reactive("Unknown Device ID")
+    ip: var[str] = var("???")
+    is_online: var[bool] = var(True)
 
     def compose(self):
-        yield DeviceTitle().data_bind(device_id=self.device_id)
+        with Container(classes="panel-header"):
+            yield DeviceTitle().data_bind(
+                device_id=self.device_id, is_online=self.is_online
+            )
+        with Container(classes="panel-content"):
+            yield DeviceIP().data_bind(ip=self.ip)
 
-    def update(self, data):
+    def update(self, data: DeviceTelemetry):
         raise NotImplementedError()
 
 
@@ -100,6 +118,9 @@ class MQTTApp(App):
                 with DeviceContainer():
                     yield DevicePanel()
                     yield DevicePanel()
+                    yield DevicePanel()
+                    yield DevicePanel()
+                    yield DevicePanel()
             with TabPane("Plots", id="plots"):
                 yield Placeholder("Here be one plot")
             with TabPane("Config"):
@@ -121,18 +142,13 @@ class MQTTApp(App):
     def write_to_terminal(self, renderable):
         self.terminal.write(content=renderable)
 
-    @staticmethod
-    def device_id_from_topic(topic) -> str:
-        """Extracts device id from topic"""
-        return topic.split("/")[-2]
-
     def _on_mqtt_message(self, topic: str, message: dict):
+        # TODO use overload functions using different message inputs
         if topic.startswith("tasmota"):
-            # TODO What is really returned here?
-            # resp = MQTTDiscovery()
-            return
+            device_id = device_id_from_topic(topic)
+            self.mount_device(device_id, MQTTDiscovery.model_validate(message))
         try:
-            device_id = self.device_id_from_topic(topic)
+            device_id = device_id_from_topic(topic)
             if topic.endswith("STATE"):
                 self._on_update_state(device_id, DeviceState.model_validate(message))
             elif topic.endswith("SENSOR"):
@@ -150,19 +166,25 @@ class MQTTApp(App):
         """Handle device data and update plots"""
         pass
 
-    def update_device(self, device_id, data: DeviceState):
+    def update_device(self, device_id, data: DeviceTelemetry):
         panel = self.device_container.query_one(device_id, expect_type=DevicePanel)
         if not panel:
             return
         panel.update(data)
 
-    def mount_device(self, device_id: str):
+    def mount_device(self, device_id: str, config: MQTTDiscovery):
         parent = self.device_container
         panel = parent.query_one(device_id)
         if panel:
+            panel.ip = config.ip
             return
         panel = DevicePanel(id=device_id)
+        panel.ip = config.ip
         parent.mount(panel)
+
+    def mark_device_offline(self, device_id: str):
+        elem = self.device_container.query_one(device_id, DevicePanel)
+        elem.is_online = False
 
 
 def run():
