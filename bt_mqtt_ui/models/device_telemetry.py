@@ -4,6 +4,7 @@ from pydantic import BaseModel, Field
 
 class ENERGY(BaseModel):
     """Entry for devices that measure current"""
+
     TotalStartTime: datetime
     Total: float
     Yesterday: int

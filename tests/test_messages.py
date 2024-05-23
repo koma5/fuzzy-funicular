@@ -1,5 +1,6 @@
 import pytest
 
+from bt_mqtt_ui.models.device_state import DeviceState
 from bt_mqtt_ui.models.device_telemetry import DeviceTelemetry
 from bt_mqtt_ui.models.tasmota_discovery import MQTTDiscovery
 
@@ -12,3 +13,8 @@ def test_telemetry_msg(file, test_data_message):
 @pytest.mark.parametrize("file", ("tasmota_discovery_1.txt",))
 def test_discovery_msg(file, test_data_message):
     model = MQTTDiscovery.model_validate(test_data_message(file))
+
+
+@pytest.mark.parametrize("file", ("tele_tasmota_CE1412_STATE.txt",))
+def test_state_msg(file, test_data_message):
+    model = DeviceState.model_validate(test_data_message(file))
