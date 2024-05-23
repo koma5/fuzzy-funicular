@@ -25,6 +25,7 @@ bt-mqtt = "bt_mqtt_ui.main:cli"
 [tool.poetry.group.dev.dependencies]
 datamodel-code-generator = "^0.25.6"
 textual-dev = "^1.5.1"
+pytest = "^8.2.1"
 
 [build-system]
 requires = ["poetry-core"]
