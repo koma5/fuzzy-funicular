@@ -10,7 +10,7 @@
 
     # with venv
     python3 -m venv .venv
-    source venv/bin/activate && pip install -r requirements.txt
+    source .venv/bin/activate && pip install -r requirements.txt
     textual run --dev bt_mqtt_ui/textual/app.py
 
 ### Create models
