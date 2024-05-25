@@ -21,6 +21,7 @@ pydantic-settings = "^2.2.1"
 
 [tool.poetry.scripts]
 bt-mqtt = "bt_mqtt_ui.main:cli"
+bt-mqtt-ui = "bt_mqtt_ui.textual.app:run"
 
 [tool.poetry.group.dev.dependencies]
 datamodel-code-generator = "^0.25.6"
