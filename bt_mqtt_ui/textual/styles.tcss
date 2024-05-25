@@ -25,3 +25,8 @@ Terminal {
   color: white;
   padding: 1;
 }
+
+MqttClientWidget {
+  background: black;
+  padding: 1;
+}

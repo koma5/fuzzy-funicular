@@ -2,20 +2,21 @@ from textual.app import App, ComposeResult, RenderResult
 from textual.widgets import (
     Footer,
     Header,
-    RichLog,
     Label,
     TabbedContent,
     TabPane,
     Placeholder,
     TextArea,
 )
-from textual.containers import Grid, Vertical, Container
+from textual.containers import Grid, Container
 from textual.reactive import var, reactive
+from textual import on
 
 from bt_mqtt_ui.models.device_state import DeviceState
 from bt_mqtt_ui.models.device_telemetry import DeviceTelemetry
 from bt_mqtt_ui.models.tasmota_discovery import MQTTDiscovery
 from bt_mqtt_ui.textual.config import AppConfig, load_config
+from bt_mqtt_ui.textual.widgets import MqttClientWidget, Terminal
 
 
 def device_id_from_topic(topic) -> str:
@@ -25,16 +26,6 @@ def device_id_from_topic(topic) -> str:
 
 class DeviceContainer(Grid):
     pass
-
-
-class Terminal(RichLog):
-    """Terminal Widget"""
-
-    hidden: var[bool] = var(False)
-
-    def watch_hidden(self):
-        # TODO
-        pass
 
 
 class DeviceTitle(Label):
@@ -107,14 +98,14 @@ class MQTTApp(App):
 
     def create_terminal(self):
         """Create the terminal widget using the config"""
-        t = Terminal(name="Terminal")
+        t = Terminal(name="Terminal", id="term", classes="hidden")
         t.styles.bg_color = self.config.terminal.style.bg_color
         return t
 
     def compose(self) -> ComposeResult:
         """A minimal screen of all other screen have been closed"""
         yield Header()
-        with TabbedContent(initial="status"):
+        with TabbedContent(initial="mqtt-term"):
             with TabPane("Status", id="status"):
                 with DeviceContainer():
                     yield DevicePanel()
@@ -122,6 +113,13 @@ class MQTTApp(App):
                     yield DevicePanel()
                     yield DevicePanel()
                     yield DevicePanel()
+            with TabPane("MQTT", id="mqtt-term"):
+                yield MqttClientWidget(
+                    host=self.config.mqtt.connection.host,
+                    port=self.config.mqtt.connection.port,
+                    topics=self.config.mqtt.subscriptions,
+                    clear_on_n_msgs=100,
+                )
             with TabPane("Plots", id="plots"):
                 yield Placeholder("Here be one plot")
             with TabPane("Config"):
@@ -138,7 +136,7 @@ class MQTTApp(App):
 
     @property
     def terminal(self):
-        return self.query_one(Terminal)
+        return self.query_one("#term", Terminal)
 
     def write_to_terminal(self, renderable):
         self.terminal.write(content=renderable)
@@ -189,6 +187,11 @@ class MQTTApp(App):
     def mark_device_offline(self, device_id: str):
         elem = self.device_container.query_one(device_id, DevicePanel)
         elem.is_online = False
+
+    @on(MqttClientWidget.MQTTMessage)
+    def on_mqtt_message(self, msg: MqttClientWidget.MQTTMessage):
+        """Listener for events bubbled up by the Widget. Place to handle graphs and plot updated"""
+        pass
 
 
 def run():
