@@ -11,13 +11,12 @@ include = "bt_mqtt_ui"
 [tool.poetry.dependencies]
 python = "^3.10"
 textual = "^0.61.1"
-uvloop = "^0.19.0"
-gmqtt = "^0.6.16"
 click = "^8.1.7"
 aiohttp = "^3.9.5"
 black = "^24.4.2"
 pydantic = "^2.7.1"
 pydantic-settings = "^2.2.1"
+aiomqtt = "^2.1.0"
 
 [tool.poetry.scripts]
 bt-mqtt = "bt_mqtt_ui.main:cli"

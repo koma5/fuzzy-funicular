@@ -1,3 +1,5 @@
+import json
+
 import click
 
 
@@ -17,58 +19,44 @@ def cli():
 @click.option(
     "-t", "--topic", multiple=True, default=("tasmota/discovery/+/+", "tele/+/+")
 )
-def listen(host, port, topic):
+@click.option("--pretty", is_flag=True, default=False)
+def listen(host, port, topic, pretty):
     """Listen to mqtt messages"""
     import asyncio
     import signal
 
-    from gmqtt import Client as MQTTClient
+    from aiomqtt import Client as MQTTClient
 
-    # gmqtt also compatibility with uvloop
-    import uvloop
+    def shutdown():
+        print("Received shutdown signal, exiting...")
+        for task in asyncio.all_tasks():
+            task.cancel()
 
-    asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
+    async def handle_message(client, pretty_json: bool = False):
+        def format_msg(payload: str):
+            if pretty_json:
+                return json.dumps(json.loads(payload), indent=2)
+            return payload
 
-    STOP = asyncio.Event()
-
-    def on_connect(client, flags, rc, properties):
-        print("Connected")
-        for to in topic:
-            client.subscribe(to)
-
-    def on_message(client, topic, payload, qos, properties):
-        print(f"RECV MSG topic {topic}:", payload)
-
-    def on_disconnect(client, packet, exc=None):
-        print("Disconnected")
-
-    def on_subscribe(client, mid, qos, properties):
-        print("SUBSCRIBED")
-
-    def ask_exit(*args):
-        STOP.set()
+        async for msg in client.messages:
+            print(f"Qos: {msg.qos} | Topic: {msg.topic} - {format_msg(msg.payload)}")
 
     async def main(broker_host, token):
-        client = MQTTClient(None)
-
-        client.on_connect = on_connect
-        client.on_message = on_message
-        client.on_disconnect = on_disconnect
-        client.on_subscribe = on_subscribe
-
-        # client.set_auth_credentials(token, None)
-        await client.connect(broker_host)
-
-        # client.publish('TEST/TIME', str(time.time()), qos=1)
-
-        await STOP.wait()
-        await client.disconnect()
+        async with MQTTClient(hostname=broker_host, clean_session=True) as client:
+            for to in topic:
+                print(f"Subscribing to topic '{to}'")
+                await client.subscribe(to)
+            await handle_message(client, pretty)
 
     loop = asyncio.get_event_loop()
-    loop.add_signal_handler(signal.SIGINT, ask_exit)
-    loop.add_signal_handler(signal.SIGTERM, ask_exit)
-
-    loop.run_until_complete(main(host, None))
+    for handler in (signal.SIGINT, signal.SIGTERM):
+        loop.add_signal_handler(handler, shutdown)
+    try:
+        loop.run_until_complete(main(host, None))
+    except asyncio.CancelledError:
+        pass
+    finally:
+        loop.close()
 
 
 if __name__ == "__main__":
