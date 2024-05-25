@@ -91,6 +91,7 @@ class MQTTApp(App):
     SUB_TITLE = f"Version ???"
     BINDINGS = [
         ("d", "toggle_dark", "DarkMode"),
+        ("t", "toggle_terminal", "Toggle Terminal"),
         ("q", "quit", "Quit App"),
     ]
 
@@ -141,6 +142,9 @@ class MQTTApp(App):
 
     def write_to_terminal(self, renderable):
         self.terminal.write(content=renderable)
+
+    def action_toggle_terminal(self):
+        self.terminal.toggle_class("hidden")
 
     def _on_mqtt_message(self, topic: str, message: dict):
         # TODO use overload functions using different message inputs
