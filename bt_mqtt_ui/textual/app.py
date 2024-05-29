@@ -64,7 +64,7 @@ class DevicePanel(Container):
     ip: var[str] = var("")
     device_name: var[str] = var("")
     host_name: var[str] = var("")
-    is_online: var[bool] = var(True)
+    is_online: reactive[bool] = reactive(True)
 
     def compose(self):
         with Container(classes="panel-header"):
@@ -168,18 +168,20 @@ class MQTTApp(App):
 
     def _on_update_discovery(self, msg: MqttClientWidget.MQTTMessage):
         model = MQTTDiscovery.model_validate(json.loads(msg.payload))
-        device_id = device_id_from_topic(msg.topic)
-        self.mount_device(device_id, model)
+        self.mount_device(model.t, model)
 
     def _on_last_will_topic(self, msg: MqttClientWidget.MQTTMessage):
         device_id = device_id_from_topic(msg.topic)
         panel = self.get_panel_from_device_id(device_id)
         if not panel:
+            self.write_to_terminal(
+                f"Topic: {msg.topic} - Set online state: Could not find panel with id {device_id}"
+            )
             return
         panel.is_online = msg.payload == "Online"
 
     def update_device(self, device_id, data: DeviceTelemetry):
-        panel = self.device_container.query_one(device_id, expect_type=DevicePanel)
+        panel = self.get_panel_from_device_id(device_id)
         if not panel:
             return
         panel.update(data)
@@ -207,7 +209,6 @@ class MQTTApp(App):
     @on(MqttClientWidget.MQTTMessage)
     def on_mqtt_message(self, msg: MqttClientWidget.MQTTMessage):
         """Listener for events bubbled up by the Widget. Place to handle graphs and plot updated"""
-        topic = msg.topic
         handler_fn = self.handler_for_topic(msg.topic)
         if not handler_fn:
             self.write_to_terminal(f"Ignoring message for topic '{msg.topic}'")
