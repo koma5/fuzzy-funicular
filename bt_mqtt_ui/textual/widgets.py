@@ -111,11 +111,11 @@ class MqttClientWidget(RichLog):
                             )
                         )
             except aiomqtt.client.MqttCodeError as e:
-                self.write(e)
+                self.write(str(e))
                 self.msg_counter += 1
                 raise
             except aiomqtt.client.MqttError as e:
-                self.write(e)
+                self.write(str(e))
                 self.msg_counter += 1
                 raise
 

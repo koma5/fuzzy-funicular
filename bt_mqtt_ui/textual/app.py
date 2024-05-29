@@ -1,4 +1,8 @@
+import json
+import re
+
 from textual.app import App, ComposeResult, RenderResult
+from textual.css.query import NoMatches
 from textual.widgets import (
     Footer,
     Header,
@@ -21,7 +25,8 @@ from bt_mqtt_ui.textual.widgets import MqttClientWidget, Terminal
 
 def device_id_from_topic(topic) -> str:
     """Extracts device id from topic"""
-    return topic.split("/")[-2]
+    mac = topic.split("/")[-2]
+    return f"M{mac}"
 
 
 class DeviceContainer(Grid):
@@ -42,18 +47,22 @@ class DeviceTitle(Label):
         return f"{mapping[self.is_online]} {self.device_id}"
 
 
-class DeviceIP(Label):
-    ip: reactive[str] = reactive("")
+class KeyValue(Label):
+    key: reactive[str] = reactive("")
+    value: reactive[str] = reactive("")
 
-    def render(self) -> RenderResult:
-        return f"IP: {self.ip}"
+    def render(self):
+        if self.value:
+            return f"{self.key}: {self.value}"
+        return ""
 
 
 class DevicePanel(Container):
     """Panel container for every device"""
 
     device_id: reactive[str] = reactive("Unknown Device ID")
-    ip: var[str] = var("???")
+    ip: var[str] = var("")
+    host_name: var[str] = var("")
     is_online: var[bool] = var(True)
 
     def compose(self):
@@ -62,17 +71,11 @@ class DevicePanel(Container):
                 device_id=self.device_id, is_online=self.is_online
             )
         with Container(classes="panel-content"):
-            yield DeviceIP().data_bind(ip=self.ip)
+            yield KeyValue().data_bind(key="HOSTNAME", value=self.host_name)
+            # yield KeyValue().data_bind(key="IP", value=self.ip)
 
     def update(self, data: DeviceTelemetry):
         raise NotImplementedError()
-
-
-topic_rgx_to_models = {
-    r"tele/\w+/STATE": DeviceState,
-    r"tele/\w+/SENSOR": DeviceTelemetry,
-    r"tasmota/discovery/\w+/config": MQTTDiscovery,
-}
 
 
 class MQTTApp(App):
@@ -105,14 +108,9 @@ class MQTTApp(App):
     def compose(self) -> ComposeResult:
         """A minimal screen of all other screen have been closed"""
         yield Header()
-        with TabbedContent(initial="mqtt-term"):
+        with TabbedContent(initial="status"):
             with TabPane("Status", id="status"):
-                with DeviceContainer():
-                    yield DevicePanel()
-                    yield DevicePanel()
-                    yield DevicePanel()
-                    yield DevicePanel()
-                    yield DevicePanel()
+                yield DeviceContainer()
             with TabPane("MQTT", id="mqtt-term"):
                 yield MqttClientWidget(
                     host=self.config.mqtt.connection.host,
@@ -130,6 +128,17 @@ class MQTTApp(App):
     def on_mount(self):
         pass
 
+    def handler_for_topic(self, topic):
+        topic_rgx_to_fns = {
+            r"tele/[A-Z0-9]+/STATE": self._on_update_state,
+            r"tele/[A-Z0-9]/SENSOR": self._on_update_telemetry,
+            r"tasmota/discovery/[A-Z0-9]+/config": self._on_update_discovery,
+        }
+        for rgx, fn in topic_rgx_to_fns.items():
+            m = re.search(rgx, topic)
+            if m:
+                return fn
+
     @property
     def device_container(self):
         return self.query_one(DeviceContainer)
@@ -144,29 +153,20 @@ class MQTTApp(App):
     def action_toggle_terminal(self):
         self.terminal.toggle_class("hidden")
 
-    def _on_mqtt_message(self, topic: str, message: dict):
-        # TODO use overload functions using different message inputs
-        if topic.startswith("tasmota"):
-            device_id = device_id_from_topic(topic)
-            self.mount_device(device_id, MQTTDiscovery.model_validate(message))
-        try:
-            device_id = device_id_from_topic(topic)
-            if topic.endswith("STATE"):
-                self._on_update_state(device_id, DeviceState.model_validate(message))
-            elif topic.endswith("SENSOR"):
-                self._on_update_telemetry(
-                    device_id, DeviceTelemetry.model_validate(message)
-                )
-        except Exception as e:
-            self.write_to_terminal(str(e))
-
-    def _on_update_state(self, device_id, mqtt_data: DeviceState):
+    def _on_update_state(self, msg: MqttClientWidget.MQTTMessage):
         """State message handling for topic STATE"""
-        pass
+        device_id = device_id_from_topic(msg.topic)
+        model = DeviceState.model_validate(json.loads(msg.payload))
 
-    def _on_update_telemetry(self, device_id, mqtt_data: DeviceTelemetry):
+    def _on_update_telemetry(self, msg: MqttClientWidget.MQTTMessage):
         """Handle device data and update plots"""
-        pass
+        device_id = device_id_from_topic(msg.topic)
+        model = DeviceTelemetry.model_validate(json.loads(msg.payload))
+
+    def _on_update_discovery(self, msg: MqttClientWidget.MQTTMessage):
+        model = MQTTDiscovery.model_validate(json.loads(msg.payload))
+        device_id = device_id_from_topic(msg.topic)
+        self.mount_device(device_id, model)
 
     def update_device(self, device_id, data: DeviceTelemetry):
         panel = self.device_container.query_one(device_id, expect_type=DevicePanel)
@@ -176,13 +176,17 @@ class MQTTApp(App):
 
     def mount_device(self, device_id: str, config: MQTTDiscovery):
         parent = self.device_container
-        panel = parent.query_one(device_id)
-        if panel:
+        id = device_id
+        try:
+            parent.query_one(f"#{id}", DevicePanel)
+        except NoMatches:
+            panel = DevicePanel(id=id)
+            # panel.ip = config.ip
+            panel.host_name = config.hn
+            panel.device_id = device_id
+            parent.mount(panel)
             panel.ip = config.ip
-            return
-        panel = DevicePanel(id=device_id)
-        panel.ip = config.ip
-        parent.mount(panel)
+            panel.is_online = True
 
     def mark_device_offline(self, device_id: str):
         elem = self.device_container.query_one(device_id, DevicePanel)
@@ -191,7 +195,12 @@ class MQTTApp(App):
     @on(MqttClientWidget.MQTTMessage)
     def on_mqtt_message(self, msg: MqttClientWidget.MQTTMessage):
         """Listener for events bubbled up by the Widget. Place to handle graphs and plot updated"""
-        pass
+        topic = msg.topic
+        handler_fn = self.handler_for_topic(msg.topic)
+        if not handler_fn:
+            self.write_to_terminal(f"Ignoring message for topic '{msg.topic}'")
+            return
+        handler_fn(msg)
 
 
 def run():
