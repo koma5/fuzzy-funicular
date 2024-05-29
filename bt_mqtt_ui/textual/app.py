@@ -1,6 +1,7 @@
 import json
 import re
 
+from rich.console import RenderableType
 from textual.app import App, ComposeResult, RenderResult
 from textual.css.query import NoMatches
 from textual.widgets import (
@@ -10,8 +11,9 @@ from textual.widgets import (
     TabbedContent,
     TabPane,
     Placeholder,
-    TextArea,
+    TextArea
 )
+from textual.widget import Widget
 from textual.containers import Grid, Container
 from textual.reactive import var, reactive
 from textual import on
@@ -25,30 +27,61 @@ from bt_mqtt_ui.textual.widgets import MqttClientWidget, Terminal
 
 def device_id_from_topic(topic) -> str:
     """Extracts device id from topic"""
-    mac = topic.split("/")[-2]
-    return f"M{mac}"
+    return topic.split("/")[-2]
 
 
 class DeviceContainer(Grid):
     pass
 
 
-class DeviceTitle(Label):
+class DeviceTitle(Widget):
     """A widget to render a title together with online status"""
+
+    DEFAULT_CSS = """
+    DeviceTitle {
+        width: auto;
+        height: auto;
+    }
+    """
 
     OFFLINE_EMOJI = ":red_circle:"
     ONLINE_EMOJI = ":green_circle:"
+    icon_mapping = {True: ONLINE_EMOJI, False: OFFLINE_EMOJI}
 
     is_online: reactive[bool] = reactive(True)
     device_id: reactive[str] = reactive("Unknown Device ID")
 
     def render(self) -> RenderResult:
-        mapping = {True: self.ONLINE_EMOJI, False: self.OFFLINE_EMOJI}
-        return f"{mapping[self.is_online]} {self.device_id}"
+        return f"{self.icon_mapping[self.is_online]} {self.device_id}"
 
 
 class KeyValue(Label):
-    key: reactive[str] = reactive("")
+
+    def __init__(
+        self,
+        key: str,
+        renderable: RenderableType = "",
+        *,
+        expand: bool = False,
+        shrink: bool = False,
+        markup: bool = True,
+        name: str | None = None,
+        id: str | None = None,
+        classes: str | None = None,
+        disabled: bool = False,
+    ):
+        super().__init__(
+            renderable=renderable,
+            expand=expand,
+            shrink=shrink,
+            markup=markup,
+            name=name,
+            id=id,
+            classes=classes,
+            disabled=disabled,
+        )
+        self.key = key
+
     value: reactive[str] = reactive("")
 
     def render(self):
@@ -68,13 +101,15 @@ class DevicePanel(Container):
 
     def compose(self):
         with Container(classes="panel-header"):
+            # TODO: This binding does not work
+            # It works with query_one
             yield DeviceTitle().data_bind(
                 device_id=self.device_id, is_online=self.is_online
             )
         with Container(classes="panel-content"):
-            yield KeyValue().data_bind(key="HOSTNAME", value=self.host_name)
-            yield KeyValue().data_bind(key="DN", value=self.device_name)
-            yield KeyValue().data_bind(key="IP", value=self.ip)
+            yield KeyValue(key="HOSTNAME").data_bind(value=self.host_name)
+            yield KeyValue(key="DN").data_bind(value=self.device_name)
+            yield KeyValue(key="IP").data_bind(value=self.ip)
 
     def update(self, data: DeviceTelemetry):
         raise NotImplementedError()
