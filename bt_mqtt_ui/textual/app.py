@@ -174,7 +174,6 @@ class MQTTApp(App):
     def _on_last_will_topic(self, msg: MqttClientWidget.MQTTMessage):
         device_id = device_id_from_topic(msg.topic)
         panel = self.get_panel_from_device_id(device_id)
-        self.notify(f"{msg.topic}: {msg.payload}")
         if not panel:
             return
         panel.is_online = msg.payload == "Online"

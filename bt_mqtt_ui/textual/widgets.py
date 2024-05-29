@@ -77,7 +77,7 @@ class MqttClientWidget(RichLog):
         self.write(data)
 
     def random_id(self):
-        return int(datetime.utcnow().timestamp())
+        return f"bt-mqtt-tui-{int(datetime.utcnow().timestamp())}"
 
     def watch_msg_counter(self):
         if self.msg_counter == self.clear_on_n_msgs:
