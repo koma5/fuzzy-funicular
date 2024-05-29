@@ -24,5 +24,5 @@ class DeviceState(BaseModel):
     Sleep: int
     LoadAvg: int
     MqttCount: int
-    POWER: str | None = Field(description="Example: OFF")
+    POWER: str | None = Field(None, description="Example: OFF")
     Wifi: Wifi
