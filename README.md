@@ -3,6 +3,24 @@
 - Tasmota Device Discovery
 - Textual TUI for Device control
 
+## Config
+
+Place a config called `bt_mqtt_ui_config.yml` in path where you start the app. You can also set the config path via env var:
+
+    export BT_UI_CONFIG=<path/to/config>
+
+Examples config:
+
+```yaml
+mqtt:
+  connection: 
+    host: 127.0.0.1
+    port: 1883
+  subscriptions:
+    - "tasmota/discovery/+/+"
+    - "tele/+/+"
+```
+
 ## Development
 
 ### Poetry installation

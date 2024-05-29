@@ -67,9 +67,13 @@ class MqttClientWidget(RichLog):
     def write_msg(self, msg: MQTTMessage):
         self.write(f"TOPIC: {msg.topic}")
         if self.pretty_json:
-            self.write(json.loads(msg.payload))
+            try:
+                data = json.loads(msg.payload)
+            except json.JSONDecodeError:
+                data = msg.payload
         else:
-            self.write(msg.payload)
+            data = msg.payload
+        self.write(data)
 
     def watch_msg_counter(self):
         if self.msg_counter == self.clear_on_n_msgs:
