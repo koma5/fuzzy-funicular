@@ -1,4 +1,5 @@
 import json
+from datetime import datetime
 
 import aiomqtt.client
 from textual.widgets import RichLog
@@ -75,6 +76,9 @@ class MqttClientWidget(RichLog):
             data = msg.payload
         self.write(data)
 
+    def random_id(self):
+        return int(datetime.utcnow().timestamp())
+
     def watch_msg_counter(self):
         if self.msg_counter == self.clear_on_n_msgs:
             self.clear()
@@ -95,7 +99,7 @@ class MqttClientWidget(RichLog):
                     port=self.port,
                     username=self.user_name,
                     password=self.password,
-                    identifier=self.id or "zzzz",
+                    identifier=self.id or self.random_id(),
                     clean_session=True,
                     keepalive=self.keepalive,
                 ) as client:

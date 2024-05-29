@@ -62,6 +62,7 @@ class DevicePanel(Container):
 
     device_id: reactive[str] = reactive("Unknown Device ID")
     ip: var[str] = var("")
+    device_name: var[str] = var("")
     host_name: var[str] = var("")
     is_online: var[bool] = var(True)
 
@@ -72,7 +73,8 @@ class DevicePanel(Container):
             )
         with Container(classes="panel-content"):
             yield KeyValue().data_bind(key="HOSTNAME", value=self.host_name)
-            # yield KeyValue().data_bind(key="IP", value=self.ip)
+            yield KeyValue().data_bind(key="DN", value=self.device_name)
+            yield KeyValue().data_bind(key="IP", value=self.ip)
 
     def update(self, data: DeviceTelemetry):
         raise NotImplementedError()
@@ -130,9 +132,10 @@ class MQTTApp(App):
 
     def handler_for_topic(self, topic):
         topic_rgx_to_fns = {
-            r"tele/[A-Z0-9]+/STATE": self._on_update_state,
-            r"tele/[A-Z0-9]/SENSOR": self._on_update_telemetry,
-            r"tasmota/discovery/[A-Z0-9]+/config": self._on_update_discovery,
+            r"tele/\w+/STATE": self._on_update_state,
+            r"tele/\w+/SENSOR": self._on_update_telemetry,
+            r"tasmota/discovery/\w+/config": self._on_update_discovery,
+            r"tele/\w+/LWT": self._on_last_will_topic,
         }
         for rgx, fn in topic_rgx_to_fns.items():
             m = re.search(rgx, topic)
@@ -168,29 +171,39 @@ class MQTTApp(App):
         device_id = device_id_from_topic(msg.topic)
         self.mount_device(device_id, model)
 
+    def _on_last_will_topic(self, msg: MqttClientWidget.MQTTMessage):
+        device_id = device_id_from_topic(msg.topic)
+        panel = self.get_panel_from_device_id(device_id)
+        self.notify(f"{msg.topic}: {msg.payload}")
+        if not panel:
+            return
+        panel.is_online = msg.payload == "Online"
+
     def update_device(self, device_id, data: DeviceTelemetry):
         panel = self.device_container.query_one(device_id, expect_type=DevicePanel)
         if not panel:
             return
         panel.update(data)
 
-    def mount_device(self, device_id: str, config: MQTTDiscovery):
-        parent = self.device_container
-        id = device_id
+    def get_panel_from_device_id(self, device_id: str):
         try:
-            parent.query_one(f"#{id}", DevicePanel)
+            panel = self.device_container.query_one(f"#{device_id}", DevicePanel)
         except NoMatches:
-            panel = DevicePanel(id=id)
-            # panel.ip = config.ip
-            panel.host_name = config.hn
-            panel.device_id = device_id
-            parent.mount(panel)
-            panel.ip = config.ip
-            panel.is_online = True
+            return None
+        return panel
 
-    def mark_device_offline(self, device_id: str):
-        elem = self.device_container.query_one(device_id, DevicePanel)
-        elem.is_online = False
+    def mount_device(self, device_id: str, config: MQTTDiscovery):
+        panel = self.get_panel_from_device_id(device_id)
+        if panel:
+            return
+        parent = self.device_container
+        panel = DevicePanel(id=device_id)
+        panel.host_name = config.hn
+        panel.device_id = device_id
+        parent.mount(panel)
+        panel.ip = config.ip
+        panel.device_name = config.dn
+        panel.is_online = True
 
     @on(MqttClientWidget.MQTTMessage)
     def on_mqtt_message(self, msg: MqttClientWidget.MQTTMessage):

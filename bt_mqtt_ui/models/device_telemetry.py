@@ -7,13 +7,13 @@ class ENERGY(BaseModel):
 
     TotalStartTime: datetime
     Total: float
-    Yesterday: int
-    Today: int
+    Yesterday: float
+    Today: float
     Period: int
     Power: float
     ApparentPower: float
     ReactivePower: float
-    Factor: int
+    Factor: float
     Voltage: float
     Current: float
 

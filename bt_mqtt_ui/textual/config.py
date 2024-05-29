@@ -31,7 +31,12 @@ class MQTTConnection(BaseModel):
 
 class MQTTConfig(BaseModel):
     connection: MQTTConnection = Field(default_factory=MQTTConnection)
-    subscriptions: tuple[str, ...] = ("#",)
+    subscriptions: tuple[str, ...] = (
+        "tasmota/discovery/+/config",
+        "tele/+/SENSOR",
+        "tele/+/LWT",
+        "tele/+/STATE",
+    )
 
 
 class TerminalStyle(BaseModel):
