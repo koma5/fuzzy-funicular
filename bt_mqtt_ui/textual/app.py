@@ -121,7 +121,7 @@ class MQTTApp(App):
             with TabPane("Plots", id="plots"):
                 yield Placeholder("Here be one plot")
             with TabPane("Config"):
-                yield TextArea(self.config.to_yaml(), language="yaml")
+                yield TextArea(self.config.to_yaml(), read_only=True, language="yaml")
         yield self.create_terminal()
         yield Footer()
 
